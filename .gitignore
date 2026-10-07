@@ -1,0 +1,27 @@
+node_modules
+
+.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.uv-cache/
+
+# Frontend build output
+dist/
+frontend/dist/
+
+# Runtime files
+celerybeat-schedule*
+*.db
+
+output
+tmp
+
+# Editor settings are personal
+.vscode/
+
+
+.envrc

@@ -1,0 +1,6412 @@
+{
+  "info": {
+    "title": "returns-portal API",
+    "version": "1.0.0",
+    "summary": "HTTP API contract for this application.",
+    "description": "This OpenAPI document is the canonical contract for people, generated clients, integrations, and AI agents.\n\n## Contract conventions\n\n- Request and response bodies use JSON unless an operation says otherwise.\n- Treat each `operationId` as a stable machine-facing identifier.\n- Use the documented schemas and examples instead of inferring fields from prose.\n- Authentication, side effects, and error responses must be stated on each operation.\n- Framework-generated HTTP errors use the documented `ErrorResponse` envelope."
+  },
+  "openapi": "3.1.0",
+  "servers": [
+    {
+      "url": "/",
+      "description": "The origin that published this document"
+    }
+  ],
+  "paths": {
+    "/api/health/live": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Check whether the API process is alive",
+        "description": "A dependency-free probe for process supervisors. This operation is public, read-only, and has no side effects.",
+        "operationId": "getLiveness",
+        "responses": {
+          "200": {
+            "description": "The API process can accept requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/health/ready": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Check required service dependencies",
+        "description": "Checks Postgres and Redis with short timeouts. Returns HTTP 200 when both dependencies respond and HTTP 503 otherwise. This public, read-only operation has no side effects.",
+        "operationId": "getReadiness",
+        "responses": {
+          "200": {
+            "description": "All required dependencies are ready.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessReport"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "At least one required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessReport"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/connections": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "List broker connections",
+        "description": "Returns every broker connection with its sync state. Token material is never included. Read-only, no side effects.",
+        "operationId": "listConnections",
+        "responses": {
+          "200": {
+            "description": "Broker connections and their state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionsResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/connections/saxo/authorize": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Start the Saxo OAuth authorization",
+        "description": "Creates a single-use state value and redirects the browser to SaxoBank's authorization page (authorization code grant). Side effect: stores the state for 15 minutes, server-side and in an HttpOnly cookie that the callback checks. Without SAXO_APP_KEY and SAXO_APP_SECRET it redirects back to the connections page with `error=not_configured`.",
+        "operationId": "startSaxoAuthorization",
+        "responses": {
+          "302": {
+            "description": "Redirect Response",
+            "headers": {
+              "location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "target path for the redirect",
+                "required": false,
+                "deprecated": false
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/connections/saxo/callback": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Complete the Saxo OAuth authorization",
+        "description": "Redirect target registered in the Saxo app. Validates the state against the stored one and the browser's state cookie, exchanges the code for tokens, stores them encrypted, and redirects the browser back to the connections page with a `connected` parameter, or an `error` code: denied, missing_code, other_browser, invalid_state or exchange_failed.",
+        "operationId": "completeSaxoAuthorization",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "State issued by the authorize step."
+            },
+            "description": "State issued by the authorize step.",
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "rp_saxo_oauth_state",
+            "in": "cookie",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "State set by the authorize step."
+            },
+            "description": "State set by the authorize step.",
+            "required": false,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect Response",
+            "headers": {
+              "location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "target path for the redirect",
+                "required": false,
+                "deprecated": false
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/connections/ibkr": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Connect Interactive Brokers through the Flex Web Service",
+        "description": "Stores the Flex token encrypted together with the query id and the token's expiry, then queues the first refresh (statement pull, FX, ingest, prices, PnL rebuild). There is no OAuth: the token is generated in Client Portal under Performance & Reports, Flex Queries. Reconnecting with a new token replaces the stored one. Returns 400 when the token or query id is missing or malformed.",
+        "operationId": "connectIbkr",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IbkrConnectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Connection stored; refresh queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionCreatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/connections/{connection_id}/sync": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Queue a broker refresh",
+        "description": "Queues a Celery task that pulls the broker's accounts, positions, balances and history, maps them into the ledger, then syncs prices and FX and rebuilds the PnL tables, so the dashboard reflects the latest broker data. Returns 404 for an unknown connection and 503 when the task queue is unavailable.",
+        "operationId": "queueConnectionSync",
+        "parameters": [
+          {
+            "name": "connection_id",
+            "in": "path",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Sync queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncQueuedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/ledger/transactions": {
+      "get": {
+        "tags": [
+          "Investments"
+        ],
+        "summary": "List ledger transactions",
+        "description": "Paged, filtered ledger rows (trades, dividends, fees, cash flows). Read-only. `kinds` is a comma-separated list of ledger kinds; unknown kinds are ignored.",
+        "operationId": "listTransactions",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 100
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "trade_date"
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "desc"
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "kinds",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated ledger kinds."
+            },
+            "description": "Comma-separated ledger kinds.",
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "portfolio_id",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "account",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Broker account id (PortfolioCard.accounts[].id)."
+            },
+            "description": "Broker account id (PortfolioCard.accounts[].id).",
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "trade_type",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "buy, sell or corporate_action; other values are ignored."
+            },
+            "description": "buy, sell or corporate_action; other values are ignored.",
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "date_gte",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "date_lte",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ledger rows and paging metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/positions": {
+      "get": {
+        "tags": [
+          "Investments"
+        ],
+        "summary": "List positions",
+        "description": "Holding episodes from the positions table (rebuilt from the ledger after every ingest), open and closed, with split-adjusted average prices, dividends, return, ROI and annualized return. Open positions are valued at the latest broker snapshot. Read-only.",
+        "operationId": "listPositions",
+        "responses": {
+          "200": {
+            "description": "Open positions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionsResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/positions/{position_id}": {
+      "get": {
+        "tags": [
+          "Investments"
+        ],
+        "summary": "Position detail",
+        "description": "One position: share counts, returns in the instrument and base currency, its trades, a daily series of split-adjusted quantity, close and market value over the holding, and up to five years of daily closes for price context. Read-only.",
+        "operationId": "getPositionDetail",
+        "parameters": [
+          {
+            "name": "position_id",
+            "in": "path",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The position.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/portfolios": {
+      "get": {
+        "tags": [
+          "Investments"
+        ],
+        "summary": "List portfolios",
+        "description": "One card per portfolio: broker cash and total value from the latest snapshot, plus the number and value of open positions derived from the ledger. Read-only.",
+        "operationId": "listPortfolios",
+        "responses": {
+          "200": {
+            "description": "Portfolios in creation order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfoliosResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/portfolios/{portfolio_id}": {
+      "patch": {
+        "tags": [
+          "Investments"
+        ],
+        "summary": "Update portfolio settings",
+        "description": "Sets the custom display name used throughout the app. Send null or an empty string to go back to the broker-provided name. reporting_start_date applies from the beginning of that day across reporting, positions and activity; null restores full history. Omitted fields stay unchanged. Future dates are rejected. Retains the underlying ledger and original acquisition costs. Returns 404 for an unknown portfolio.",
+        "operationId": "updatePortfolio",
+        "parameters": [
+          {
+            "name": "portfolio_id",
+            "in": "path",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortfolioUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The updated portfolio.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioCard"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/orders": {
+      "get": {
+        "tags": [
+          "Investments"
+        ],
+        "summary": "List orders",
+        "description": "Every broker order known to the app, working and historical, one row per order in its latest state. Working orders first, then newest placed first. Read-only.",
+        "operationId": "listOrders",
+        "responses": {
+          "200": {
+            "description": "Orders, working first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrdersResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/ledger/cash-movements": {
+      "get": {
+        "tags": [
+          "Investments"
+        ],
+        "summary": "List deposits, withdrawals, transfers and conversions",
+        "description": "External cash flows and internal transfers between the client's currency accounts. The two legs of a transfer are merged into one row; a cross-currency pair is reported as a conversion with its implied rate.",
+        "operationId": "listCashMovements",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cash movements, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashMovementsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/preferences": {
+      "get": {
+        "tags": [
+          "Preferences"
+        ],
+        "summary": "List UI preferences",
+        "description": "Every stored preference, such as the saved default filters per page. Read-only.",
+        "operationId": "listPreferences",
+        "responses": {
+          "200": {
+            "description": "Preferences by key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/preferences/{key}": {
+      "put": {
+        "tags": [
+          "Preferences"
+        ],
+        "summary": "Save a UI preference",
+        "description": "Stores the value under the key, replacing any previous value. Used to save a page's default filters.",
+        "operationId": "savePreference",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferenceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The stored preference.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preference"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      },
+      "delete": {
+        "tags": [
+          "Preferences"
+        ],
+        "summary": "Delete a UI preference",
+        "description": "Removes the stored value so the page falls back to its built-in defaults. 404 when nothing is stored.",
+        "operationId": "deletePreference",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/prices/status": {
+      "get": {
+        "tags": [
+          "Data"
+        ],
+        "summary": "Price coverage per security",
+        "description": "Which source each security's daily prices come from, how far they reach, and the last error. Read-only.",
+        "operationId": "listPriceStatus",
+        "responses": {
+          "200": {
+            "description": "One row per security.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceStatusResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/prices": {
+      "get": {
+        "tags": [
+          "Data"
+        ],
+        "summary": "Daily prices of a security",
+        "description": "Split-adjusted daily OHLCV in the instrument currency, oldest first, optionally limited to a date range.",
+        "operationId": "listDailyPrices",
+        "parameters": [
+          {
+            "name": "security_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "date_gte",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "date_lte",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bars, oldest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyPricesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/fx/status": {
+      "get": {
+        "tags": [
+          "Data"
+        ],
+        "summary": "FX coverage per currency",
+        "description": "Every currency the ledger or securities use, with the stored rate coverage. Read-only.",
+        "operationId": "listFxStatus",
+        "responses": {
+          "200": {
+            "description": "One row per (base, currency).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FxStatusResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/fx": {
+      "get": {
+        "tags": [
+          "Data"
+        ],
+        "summary": "Daily FX series",
+        "description": "ECB reference rates crossed through EUR into the base currency, one row per published day, oldest first. Gaps (weekends, holidays) are carried forward by the engine, not stored.",
+        "operationId": "listFxRates",
+        "parameters": [
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "base_currency",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "date_gte",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "date_lte",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rates, oldest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FxSeriesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/reports/dashboard": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Dashboard from calculated portfolio results",
+        "description": "Read-only snapshot of NAV history, daily PnL, FX attribution including cash, portfolio returns, five highest and lowest contributors, and recorded reconciliation findings. Uses the latest shared day of portfolios with calculated returns, today included once it has market observations (flagged as intraday); missing coverage is reported in warnings. Totals are unavailable for mixed base currencies. Does not sync brokers or rebuild data. Uses the same access policy as other report endpoints; no additional endpoint-specific authentication.",
+        "operationId": "getDashboard",
+        "responses": {
+          "200": {
+            "description": "Stored results or an explicit empty state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/reports/pnl": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Daily position attribution",
+        "description": "One row per position per calendar day: quantities, carried price and FX, market value and the decomposition of the day's PnL into price, FX, interaction, dividend, interest and cost effects. Cash balances per currency are positions too. Paged; filters and sort are query parameters. Read-only.",
+        "operationId": "listPnlRows",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 100
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "day"
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "desc"
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "portfolio_id",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "security_id",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "position_kind",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "security or cash; anything else returns both."
+            },
+            "description": "security or cash; anything else returns both.",
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "position_type",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "long or short; anything else returns both."
+            },
+            "description": "long or short; anything else returns both.",
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "date_gte",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "date_lte",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "include_flat",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "description": "Also return days where a position is flat and idle.",
+              "default": false
+            },
+            "description": "Also return days where a position is flat and idle.",
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of attribution rows.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PnlResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/reports/portfolio-days": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Unitized portfolio series",
+        "description": "NAV, external flows, lifetime cumulative net cash additions and monetary return, daily PnL, units, unit price, cumulative return and drawdown per calendar day. Cash additions and monetary return retain history before date filters and each portfolio's reporting start. Without portfolio_id (or with 0) all portfolios are unitized together as 'Total'. Read-only.",
+        "operationId": "listPortfolioDays",
+        "parameters": [
+          {
+            "name": "portfolio_id",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "date_gte",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          },
+          {
+            "name": "date_lte",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Days oldest first with a summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioDaysResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/reconciliation/issues": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Issues recorded by the last rebuild",
+        "description": "Data-quality findings of the PnL engine: missing or stale prices, missing FX, inferred splits, and days where the engine NAV differs from the broker's reported value, split into ECB-vs-broker FX, cash and securities where the broker's FX rates are known. Read-only.",
+        "operationId": "listReconciliationIssues",
+        "responses": {
+          "200": {
+            "description": "Issues, newest day first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuesResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/reports/rebuild": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Rebuild the derived PnL tables",
+        "description": "Runs the SQL engine for every portfolio from the ledger, prices and FX, replacing pnl_days, portfolio_days and reconciliation_issues. Synchronous; takes some seconds per portfolio.",
+        "operationId": "rebuildPnl",
+        "responses": {
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RebuildResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Row counts per portfolio.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RebuildResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/settings/reporting-currency": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Reporting currency",
+        "description": "The currency every portfolio is booked and reported in, the currencies it can be changed to, and whether a recalculation after a change is still running. Read-only.",
+        "operationId": "getReportingCurrency",
+        "responses": {
+          "200": {
+            "description": "Current setting and options.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportingCurrencySettings"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      },
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Change the reporting currency",
+        "description": "Stores the reporting currency and queues the recalculation: FX rates crossed into it, every broker ledger re-mapped from its stored payloads (no broker requests), and the PnL rebuild. Reports show mixed currencies until it finishes; poll the GET endpoint for `pending`. 400 for a currency without ECB rates, or one a connected broker cannot be booked in (Saxo books in its client currency).",
+        "operationId": "setReportingCurrency",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportingCurrencyUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Stored; recalculation queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportingCurrencySettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "type": [
+                        "null",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "examples": [
+                    {
+                      "status_code": 400,
+                      "detail": "Bad Request",
+                      "extra": {}
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error using the standard API error envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "errorresponse-example-1": {
+                    "summary": "Unexpected server error",
+                    "value": {
+                      "status_code": 500,
+                      "error": "internal_server_error",
+                      "detail": "An unexpected error occurred",
+                      "request_id": "01JEXAMPLE1234567890"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CashBalance": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "examples": [
+              "USD"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "description": "Cash held in that currency account, in the account currency."
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "title": "CashBalance"
+      },
+      "CashMovementRow": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "trade_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "value_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "description": "deposit, withdrawal, transfer, or conversion.",
+            "examples": [
+              "conversion"
+            ]
+          },
+          "portfolio_name": {
+            "type": "string"
+          },
+          "from_account": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "from_currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "from_amount": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Negative amount leaving the source account."
+          },
+          "to_account": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "to_currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "to_amount": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rate": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Units of target currency per unit of source currency for conversions."
+          },
+          "base_currency": {
+            "type": "string"
+          },
+          "amount_base": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount_base",
+          "base_currency",
+          "description",
+          "from_account",
+          "from_amount",
+          "from_currency",
+          "id",
+          "kind",
+          "portfolio_name",
+          "rate",
+          "to_account",
+          "to_amount",
+          "to_currency",
+          "trade_date",
+          "value_date"
+        ],
+        "title": "CashMovementRow"
+      },
+      "CashMovementsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CashMovementRow"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "CashMovementsResponse"
+      },
+      "ConnectionCreatedResponse": {
+        "properties": {
+          "connection_id": {
+            "type": "integer",
+            "description": "The stored connection.",
+            "examples": [
+              2
+            ]
+          },
+          "task_id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Celery task of the first refresh, or null when the queue is down."
+          }
+        },
+        "type": "object",
+        "required": [
+          "connection_id",
+          "task_id"
+        ],
+        "title": "ConnectionCreatedResponse"
+      },
+      "ConnectionStatus": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Connection identifier.",
+            "examples": [
+              1
+            ]
+          },
+          "broker": {
+            "type": "string",
+            "description": "Broker key.",
+            "examples": [
+              "saxo"
+            ]
+          },
+          "environment": {
+            "type": "string",
+            "description": "Broker environment, live or sim.",
+            "examples": [
+              "live"
+            ]
+          },
+          "client_key": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Broker-side client key once the first sync ran."
+          },
+          "client_name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Client name reported by the broker."
+          },
+          "base_currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Client default currency reported by the broker.",
+            "examples": [
+              "EUR"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "connected, expired, or error.",
+            "examples": [
+              "connected"
+            ]
+          },
+          "query_id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Report query id for brokers that pull reports (IBKR Flex)."
+          },
+          "account_count": {
+            "type": "integer",
+            "description": "Active broker accounts found by the last sync.",
+            "examples": [
+              2
+            ]
+          },
+          "access_token_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the current access token expires."
+          },
+          "refresh_token_expires_at": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the refresh token expires, if known."
+          },
+          "last_sync_started_at": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Start of the most recent sync."
+          },
+          "last_sync_finished_at": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "End of the most recent sync."
+          },
+          "last_sync_error": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Error message of the most recent sync, if it failed."
+          },
+          "last_success_finished_at": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "End of the most recent successful sync."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the connection was first authorized."
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token_expires_at",
+          "account_count",
+          "base_currency",
+          "broker",
+          "client_key",
+          "client_name",
+          "created_at",
+          "environment",
+          "id",
+          "last_success_finished_at",
+          "last_sync_error",
+          "last_sync_finished_at",
+          "last_sync_started_at",
+          "refresh_token_expires_at",
+          "status"
+        ],
+        "title": "ConnectionStatus"
+      },
+      "ConnectionsResponse": {
+        "properties": {
+          "connections": {
+            "items": {
+              "$ref": "#/components/schemas/ConnectionStatus"
+            },
+            "type": "array",
+            "description": "All broker connections, without token material."
+          }
+        },
+        "type": "object",
+        "required": [
+          "connections"
+        ],
+        "title": "ConnectionsResponse"
+      },
+      "CurrencyOption": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "examples": [
+              "EUR"
+            ]
+          },
+          "allowed": {
+            "type": "boolean",
+            "description": "Whether the currency can be chosen now."
+          },
+          "reason": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why it cannot be chosen, when it cannot."
+          }
+        },
+        "type": "object",
+        "required": [
+          "allowed",
+          "code"
+        ],
+        "title": "CurrencyOption"
+      },
+      "DailyPriceRow": {
+        "properties": {
+          "price_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "open": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "high": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "low": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "close": {
+            "type": "string"
+          },
+          "volume": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "close",
+          "currency",
+          "high",
+          "low",
+          "open",
+          "price_date",
+          "source",
+          "volume"
+        ],
+        "title": "DailyPriceRow"
+      },
+      "DailyPricesResponse": {
+        "properties": {
+          "security_id": {
+            "type": "integer"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/DailyPriceRow"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "security_id"
+        ],
+        "title": "DailyPricesResponse"
+      },
+      "DashboardFx": {
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "effect": {
+            "type": "string",
+            "description": "Summed FX effect in base currency, including cash."
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency",
+          "effect"
+        ],
+        "title": "DashboardFx"
+      },
+      "DashboardNavPoint": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "nav": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "nav"
+        ],
+        "title": "DashboardNavPoint"
+      },
+      "DashboardPortfolio": {
+        "properties": {
+          "reporting_start_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "portfolio_id": {
+            "type": "integer"
+          },
+          "portfolio_name": {
+            "type": "string"
+          },
+          "base_currency": {
+            "type": "string"
+          },
+          "first_day": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_day": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Latest calculated day available for this portfolio."
+          },
+          "nav": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "daily_pnl": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "daily_return_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cumulative_return_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "base_currency",
+          "cumulative_return_pct",
+          "daily_pnl",
+          "daily_return_pct",
+          "first_day",
+          "last_day",
+          "nav",
+          "portfolio_id",
+          "portfolio_name"
+        ],
+        "title": "DashboardPortfolio"
+      },
+      "DashboardResponse": {
+        "properties": {
+          "as_of": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Latest shared valuation day, today included, with market observations or account activity; base-currency cash-only days need neither. Null when totals are unavailable."
+          },
+          "intraday": {
+            "type": "boolean",
+            "description": "True when as_of is today: its closes are the latest intraday prices until the markets close."
+          },
+          "base_currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nav": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "daily_pnl": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "daily_return_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Summed PnL / summed prior NAV, as a fraction."
+          },
+          "fx_effect_base": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "issue_count": {
+            "type": "integer",
+            "description": "Data-quality findings from the latest rebuilds within each reporting period."
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardNavPoint"
+            },
+            "type": "array"
+          },
+          "portfolios": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardPortfolio"
+            },
+            "type": "array"
+          },
+          "fx_by_currency": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardFx"
+            },
+            "type": "array"
+          },
+          "top": {
+            "items": {
+              "$ref": "#/components/schemas/PnlRow"
+            },
+            "type": "array"
+          },
+          "bottom": {
+            "items": {
+              "$ref": "#/components/schemas/PnlRow"
+            },
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "as_of",
+          "base_currency",
+          "bottom",
+          "daily_pnl",
+          "daily_return_pct",
+          "fx_by_currency",
+          "fx_effect_base",
+          "intraday",
+          "issue_count",
+          "nav",
+          "portfolios",
+          "series",
+          "top",
+          "warnings"
+        ],
+        "title": "DashboardResponse"
+      },
+      "DependencyStatus": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Dependency state: ok or unavailable."
+          },
+          "detail": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Safe failure summary when unavailable."
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "DependencyStatus"
+      },
+      "EngineStatusRow": {
+        "properties": {
+          "portfolio_id": {
+            "type": "integer"
+          },
+          "portfolio_name": {
+            "type": "string"
+          },
+          "first_day": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_day": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position_rows": {
+            "type": "integer"
+          },
+          "issues": {
+            "type": "integer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "first_day",
+          "issues",
+          "last_day",
+          "portfolio_id",
+          "portfolio_name",
+          "position_rows"
+        ],
+        "title": "EngineStatusRow"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "status_code": {
+            "type": "integer",
+            "description": "HTTP status code.",
+            "examples": [
+              400
+            ]
+          },
+          "error": {
+            "type": "string",
+            "description": "Stable machine-readable error category.",
+            "examples": [
+              "bad_request"
+            ]
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable explanation safe to show to a caller.",
+            "examples": [
+              "The request could not be processed."
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "Identifier for correlating the response with server logs.",
+            "examples": [
+              "01JEXAMPLE1234567890"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail",
+          "error",
+          "request_id",
+          "status_code"
+        ],
+        "title": "ErrorResponse"
+      },
+      "FxRateRow": {
+        "properties": {
+          "rate_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "rate": {
+            "type": "string",
+            "description": "Base currency per one unit of the currency."
+          },
+          "source": {
+            "type": "string",
+            "description": "ecb or identity."
+          }
+        },
+        "type": "object",
+        "required": [
+          "rate",
+          "rate_date",
+          "source"
+        ],
+        "title": "FxRateRow"
+      },
+      "FxSeriesResponse": {
+        "properties": {
+          "base_currency": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/FxRateRow"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "base_currency",
+          "currency",
+          "data"
+        ],
+        "title": "FxSeriesResponse"
+      },
+      "FxStatusResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/FxStatusRow"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "FxStatusResponse"
+      },
+      "FxStatusRow": {
+        "properties": {
+          "base_currency": {
+            "type": "string",
+            "examples": [
+              "EUR"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "examples": [
+              "USD"
+            ]
+          },
+          "first_needed": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First ledger date of any portfolio in this base currency."
+          },
+          "first_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "days": {
+            "type": "integer",
+            "description": "Published days stored."
+          },
+          "last_rate": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Base currency per one unit of the currency."
+          }
+        },
+        "type": "object",
+        "required": [
+          "base_currency",
+          "currency",
+          "days",
+          "first_date",
+          "first_needed",
+          "last_date",
+          "last_rate"
+        ],
+        "title": "FxStatusRow"
+      },
+      "IbkrConnectRequest": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Flex Web Service token generated in Client Portal."
+          },
+          "query_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Id of the Activity Flex Query to pull.",
+            "examples": [
+              "123456"
+            ]
+          },
+          "expires_at": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the token expires, as chosen when it was generated; a year from now when omitted."
+          }
+        },
+        "type": "object",
+        "required": [
+          "query_id",
+          "token"
+        ],
+        "title": "IbkrConnectRequest"
+      },
+      "IssueFxRate": {
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "ecb_rate": {
+            "type": "string",
+            "description": "Reporting currency per unit, the ECB rate the engine valued the day at."
+          },
+          "ecb_rate_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Date of that ECB rate (forward-filled over non-fixing days)."
+          },
+          "broker_rate": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Reporting currency per unit at the broker's own rate; null when the broker's rate is unknown."
+          },
+          "broker_rate_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "broker_quote_currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Currency the broker quotes its own rate in (IBKR: the account base, crossed into the reporting currency with the ECB rate its NAV is converted with)."
+          },
+          "broker_quote_rate": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The broker's rate as stated: quote currency per unit."
+          },
+          "value_local": {
+            "type": "string",
+            "description": "Engine holdings in this currency (securities and cash), local amount."
+          },
+          "gap_fx": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "value_local x (ecb_rate - broker_rate): this currency's part of the issue's gap_fx."
+          }
+        },
+        "type": "object",
+        "required": [
+          "broker_quote_currency",
+          "broker_quote_rate",
+          "broker_rate",
+          "broker_rate_date",
+          "currency",
+          "ecb_rate",
+          "ecb_rate_date",
+          "gap_fx",
+          "value_local"
+        ],
+        "title": "IssueFxRate"
+      },
+      "IssueRow": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "portfolio_id": {
+            "type": "integer"
+          },
+          "portfolio_name": {
+            "type": "string"
+          },
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "kind": {
+            "type": "string",
+            "examples": [
+              "nav_mismatch"
+            ]
+          },
+          "security_id": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "security_name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "full_ticker": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "amount": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "broker": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Broker of the portfolio's connection, e.g. ibkr or saxo."
+          },
+          "gap_fx": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "NAV mismatches: part of the difference from valuing holdings at ECB rates instead of the broker's own FX rates. Null when the broker's rates are not known for every held currency."
+          },
+          "gap_cash": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "NAV mismatches: engine cash minus broker cash, both at the broker's FX rates."
+          },
+          "gap_securities": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "NAV mismatches: engine securities minus broker securities at the broker's FX rates (prices and quantities). gap_fx + gap_cash + gap_securities equals amount."
+          },
+          "fx_rates": {
+            "items": {
+              "$ref": "#/components/schemas/IssueFxRate"
+            },
+            "type": "array",
+            "description": "NAV mismatches: ECB and broker FX rate per held currency, largest effect first."
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount",
+          "created_at",
+          "currency",
+          "day",
+          "full_ticker",
+          "id",
+          "kind",
+          "message",
+          "portfolio_id",
+          "portfolio_name",
+          "security_id",
+          "security_name"
+        ],
+        "title": "IssueRow"
+      },
+      "IssuesResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/IssueRow"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "IssuesResponse"
+      },
+      "OrderRow": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "broker_order_id": {
+            "type": "string"
+          },
+          "portfolio_id": {
+            "type": "integer"
+          },
+          "portfolio_name": {
+            "type": "string"
+          },
+          "account_label": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Broker account id and currency.",
+            "examples": [
+              "1234567/2 (USD)"
+            ]
+          },
+          "security_id": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when the instrument is unknown to the securities table."
+          },
+          "security_name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "full_ticker": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ticker:MIC when known.",
+            "examples": [
+              "ROKU:XNAS"
+            ]
+          },
+          "asset_type": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "instrument_symbol": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Symbol as the broker reported it on the order."
+          },
+          "status": {
+            "type": "string",
+            "description": "working, filled, cancelled, expired, rejected or other.",
+            "examples": [
+              "working"
+            ]
+          },
+          "broker_status": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The broker's own status word.",
+            "examples": [
+              "Working"
+            ]
+          },
+          "is_open": {
+            "type": "boolean",
+            "description": "True when the broker listed the order as working at the latest sync."
+          },
+          "buy_sell": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "buy or sell."
+          },
+          "order_type": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "Limit"
+            ]
+          },
+          "duration": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "GoodTillCancel"
+            ]
+          },
+          "quantity": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "filled_quantity": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "price": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Limit or stop price in the instrument currency."
+          },
+          "average_fill_price": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "placed_at": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_activity_at": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expires_at": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "order_relation": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "StandAlone, IfDoneMaster, IfDoneSlave or Oco."
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_label",
+          "asset_type",
+          "average_fill_price",
+          "broker_order_id",
+          "broker_status",
+          "buy_sell",
+          "currency",
+          "duration",
+          "expires_at",
+          "filled_quantity",
+          "full_ticker",
+          "id",
+          "instrument_symbol",
+          "is_open",
+          "last_activity_at",
+          "order_relation",
+          "order_type",
+          "placed_at",
+          "portfolio_id",
+          "portfolio_name",
+          "price",
+          "quantity",
+          "security_id",
+          "security_name",
+          "status"
+        ],
+        "title": "OrderRow"
+      },
+      "OrdersResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/OrderRow"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "OrdersResponse"
+      },
+      "PageMeta": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Rows matching the filters before paging.",
+            "examples": [
+              3120
+            ]
+          },
+          "page": {
+            "type": "integer",
+            "description": "1-based page number.",
+            "examples": [
+              1
+            ]
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "Rows per page.",
+            "examples": [
+              100
+            ]
+          },
+          "order_by": {
+            "type": "string",
+            "description": "Applied sort column.",
+            "examples": [
+              "trade_date"
+            ]
+          },
+          "order": {
+            "type": "string",
+            "description": "asc or desc.",
+            "examples": [
+              "desc"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "order",
+          "order_by",
+          "page",
+          "per_page",
+          "total"
+        ],
+        "title": "PageMeta"
+      },
+      "PnlResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PnlRow"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "PnlResponse"
+      },
+      "PnlRow": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "portfolio_id": {
+            "type": "integer"
+          },
+          "portfolio_name": {
+            "type": "string"
+          },
+          "position_kind": {
+            "type": "string",
+            "description": "security or cash.",
+            "examples": [
+              "security"
+            ]
+          },
+          "position_key": {
+            "type": "string",
+            "description": "Stable key of the position within the portfolio.",
+            "examples": [
+              "sec:12"
+            ]
+          },
+          "security_id": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "security_name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "full_ticker": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ticker:MIC, or the currency for cash.",
+            "examples": [
+              "ROKU:XNAS"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "description": "Instrument currency, or the cash currency."
+          },
+          "base_currency": {
+            "type": "string"
+          },
+          "position_type": {
+            "type": "string",
+            "description": "long or short.",
+            "examples": [
+              "long"
+            ]
+          },
+          "quantity": {
+            "type": "string",
+            "description": "Held at the close, on the split-adjusted basis of the price history."
+          },
+          "quantity_prev": {
+            "type": "string"
+          },
+          "trade_quantity": {
+            "type": "string",
+            "description": "Net traded on the day, same basis."
+          },
+          "basis_factor": {
+            "type": "string",
+            "description": "Raw ledger quantity times this equals quantity."
+          },
+          "price": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Carried close in the instrument currency; 1 for cash."
+          },
+          "price_change": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "price_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Observation date of the carried price."
+          },
+          "price_source": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "close, ledger or cash."
+          },
+          "fx": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Base currency per unit of the instrument currency."
+          },
+          "fx_change": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "execution_price": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Volume-weighted price of the day's trades."
+          },
+          "execution_fx": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "market_value_base": {
+            "type": "string"
+          },
+          "market_value_local": {
+            "type": "string"
+          },
+          "prev_market_value_base": {
+            "type": "string"
+          },
+          "trade_flow_base": {
+            "type": "string",
+            "description": "Cost of the day's trades (buys positive), ex costs."
+          },
+          "trade_flow_local": {
+            "type": "string"
+          },
+          "flow_base": {
+            "type": "string",
+            "description": "All base money into the position; daily_pnl = \u0394MV - flow exactly."
+          },
+          "price_effect_base": {
+            "type": "string"
+          },
+          "price_effect_local": {
+            "type": "string"
+          },
+          "fx_effect_base": {
+            "type": "string"
+          },
+          "interaction_effect_base": {
+            "type": "string"
+          },
+          "dividend_effect_base": {
+            "type": "string",
+            "description": "Dividends and lending income booked on the day."
+          },
+          "dividend_effect_local": {
+            "type": "string"
+          },
+          "interest_effect_base": {
+            "type": "string"
+          },
+          "cost_effect_base": {
+            "type": "string",
+            "description": "Commissions, fees, taxes and withholding tax (negative)."
+          },
+          "cost_effect_local": {
+            "type": "string"
+          },
+          "daily_pnl_base": {
+            "type": "string"
+          },
+          "daily_pnl_local": {
+            "type": "string"
+          },
+          "daily_return_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "daily_pnl_base over |prior market value|, as a fraction."
+          },
+          "constant_currency_return_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Local PnL at yesterday's FX over |prior value|."
+          },
+          "total_pnl_base": {
+            "type": "string",
+            "description": "Running sum of daily_pnl_base for the position."
+          },
+          "total_pnl_local": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "base_currency",
+          "basis_factor",
+          "constant_currency_return_pct",
+          "cost_effect_base",
+          "cost_effect_local",
+          "currency",
+          "daily_pnl_base",
+          "daily_pnl_local",
+          "daily_return_pct",
+          "day",
+          "dividend_effect_base",
+          "dividend_effect_local",
+          "execution_fx",
+          "execution_price",
+          "flow_base",
+          "full_ticker",
+          "fx",
+          "fx_change",
+          "fx_effect_base",
+          "interaction_effect_base",
+          "interest_effect_base",
+          "market_value_base",
+          "market_value_local",
+          "portfolio_id",
+          "portfolio_name",
+          "position_key",
+          "position_kind",
+          "position_type",
+          "prev_market_value_base",
+          "price",
+          "price_change",
+          "price_date",
+          "price_effect_base",
+          "price_effect_local",
+          "price_source",
+          "quantity",
+          "quantity_prev",
+          "security_id",
+          "security_name",
+          "total_pnl_base",
+          "total_pnl_local",
+          "trade_flow_base",
+          "trade_flow_local",
+          "trade_quantity"
+        ],
+        "title": "PnlRow"
+      },
+      "PortfolioAccount": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Internal account id, used by the transactions `account` filter."
+          },
+          "account_id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Broker account number.",
+            "examples": [
+              "1234567/2"
+            ]
+          },
+          "currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "Account number and currency.",
+            "examples": [
+              "1234567/2 (USD)"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "active",
+          "currency",
+          "id",
+          "label"
+        ],
+        "title": "PortfolioAccount"
+      },
+      "PortfolioCard": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name to show: the custom display name when set, else the broker name."
+          },
+          "broker_name": {
+            "type": "string",
+            "description": "Name reported by the broker."
+          },
+          "display_name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "User-chosen name, null when the broker name is used."
+          },
+          "reporting_start_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Inclusive reporting boundary; null means full history."
+          },
+          "base_currency": {
+            "type": "string",
+            "examples": [
+              "EUR"
+            ]
+          },
+          "broker": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "saxo or ibkr; null when the portfolio has no connection."
+          },
+          "environment": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "live or sim."
+          },
+          "connection_status": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "connected, expired or error."
+          },
+          "last_sync_finished_at": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "snapshot_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Date of the broker snapshot the values come from."
+          },
+          "open_positions": {
+            "type": "integer",
+            "description": "Number of open holding episodes."
+          },
+          "positions_value_base": {
+            "type": "string",
+            "description": "Market value of the open positions in base currency."
+          },
+          "cash_base": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Broker cash balance across currency accounts, in base currency."
+          },
+          "total_value_base": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Broker total account value in base currency."
+          },
+          "unbooked_base": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Executed trades the broker has not booked to cash yet, in base currency; counted in total_value_base but in neither cash nor positions. Null when the broker reports no such figure."
+          },
+          "unexplained_base": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "total_value_base minus cash_base, positions_value_base and unbooked_base; accrued items and rounding."
+          },
+          "cash_by_currency": {
+            "items": {
+              "$ref": "#/components/schemas/CashBalance"
+            },
+            "type": "array",
+            "description": "Non-zero cash balances per currency account."
+          },
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/PortfolioAccount"
+            },
+            "type": "array",
+            "description": "Broker accounts behind the portfolio."
+          }
+        },
+        "type": "object",
+        "required": [
+          "accounts",
+          "base_currency",
+          "broker",
+          "broker_name",
+          "cash_base",
+          "cash_by_currency",
+          "connection_status",
+          "display_name",
+          "environment",
+          "id",
+          "last_sync_finished_at",
+          "name",
+          "open_positions",
+          "positions_value_base",
+          "snapshot_date",
+          "total_value_base",
+          "unbooked_base",
+          "unexplained_base"
+        ],
+        "title": "PortfolioCard"
+      },
+      "PortfolioCurrency": {
+        "properties": {
+          "portfolio_id": {
+            "type": "integer"
+          },
+          "portfolio_name": {
+            "type": "string"
+          },
+          "booked_currency": {
+            "type": "string",
+            "description": "Currency the portfolio's ledger is booked in."
+          },
+          "built_currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Currency of the last PnL rebuild; null before the first."
+          }
+        },
+        "type": "object",
+        "required": [
+          "booked_currency",
+          "built_currency",
+          "portfolio_id",
+          "portfolio_name"
+        ],
+        "title": "PortfolioCurrency"
+      },
+      "PortfolioDay": {
+        "properties": {
+          "reporting_start_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "portfolio_id": {
+            "type": "integer",
+            "description": "0 for all portfolios together."
+          },
+          "portfolio_name": {
+            "type": "string"
+          },
+          "base_currency": {
+            "type": "string"
+          },
+          "nav": {
+            "type": "string",
+            "description": "Positions plus cash at the close, in base currency."
+          },
+          "positions_value": {
+            "type": "string"
+          },
+          "cash_value": {
+            "type": "string"
+          },
+          "nav_prev": {
+            "type": "string"
+          },
+          "flow": {
+            "type": "string",
+            "description": "External flow: deposits minus withdrawals."
+          },
+          "cumulative_cash_additions": {
+            "type": "string",
+            "description": "Lifetime deposits minus withdrawals through this day, in base currency, including history before date filters and reporting start. Total sums the portfolios included in that day's NAV."
+          },
+          "returns_base": {
+            "type": "string",
+            "description": "Lifetime monetary return: NAV minus cumulative_cash_additions."
+          },
+          "daily_pnl": {
+            "type": "string",
+            "description": "nav - nav_prev - flow; equals the sum of the positions' daily PnL."
+          },
+          "daily_return_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Time-weighted daily return, as a fraction."
+          },
+          "unit_price": {
+            "type": "string",
+            "description": "NAV per unit, 100 at inception."
+          },
+          "units": {
+            "type": "string"
+          },
+          "cumulative_return_pct": {
+            "type": "string"
+          },
+          "drawdown_pct": {
+            "type": "string",
+            "description": "Unit price relative to its running peak, as a fraction (\u2264 0)."
+          },
+          "broker_value": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Broker-reported account value on snapshot days."
+          }
+        },
+        "type": "object",
+        "required": [
+          "base_currency",
+          "broker_value",
+          "cash_value",
+          "cumulative_cash_additions",
+          "cumulative_return_pct",
+          "daily_pnl",
+          "daily_return_pct",
+          "day",
+          "drawdown_pct",
+          "flow",
+          "nav",
+          "nav_prev",
+          "portfolio_id",
+          "portfolio_name",
+          "positions_value",
+          "returns_base",
+          "unit_price",
+          "units"
+        ],
+        "title": "PortfolioDay"
+      },
+      "PortfolioDaysResponse": {
+        "properties": {
+          "portfolio_id": {
+            "type": "integer"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PortfolioDay"
+            },
+            "type": "array"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/SeriesSummary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "portfolio_id",
+          "summary"
+        ],
+        "title": "PortfolioDaysResponse"
+      },
+      "PortfolioUpdate": {
+        "properties": {
+          "reporting_start_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Inclusive start of portfolio reporting. Null restores full history; omitted leaves it unchanged.",
+            "examples": [
+              "2024-01-01"
+            ]
+          },
+          "display_name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "maxLength": 80,
+            "description": "Custom name shown throughout the app. Null or blank restores the broker name.",
+            "examples": [
+              "Saxo pension"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [],
+        "title": "PortfolioUpdate"
+      },
+      "PortfoliosResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PortfolioCard"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "PortfoliosResponse"
+      },
+      "PositionDetail": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "portfolio_id": {
+            "type": "integer"
+          },
+          "portfolio_name": {
+            "type": "string"
+          },
+          "security_id": {
+            "type": "integer"
+          },
+          "security_name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "full_ticker": {
+            "type": "string",
+            "examples": [
+              "ANET:XNYS"
+            ]
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Instrument currency."
+          },
+          "base_currency": {
+            "type": "string"
+          },
+          "position_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "open or closed."
+          },
+          "reporting_start_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "original_cost_local": {
+            "type": "string",
+            "description": "Lifetime acquisition cash, negative, in instrument currency."
+          },
+          "original_cost_base": {
+            "type": "string",
+            "description": "Lifetime acquisition cash, negative, in base currency."
+          },
+          "opened": {
+            "type": "string",
+            "format": "date",
+            "description": "First trade."
+          },
+          "closed": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The trade that brought the quantity to zero, when closed."
+          },
+          "current_price": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "price_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Date of the broker mark or engine close behind current_price."
+          },
+          "shares": {
+            "$ref": "#/components/schemas/ShareStats"
+          },
+          "returns_local": {
+            "$ref": "#/components/schemas/ReturnsBlock"
+          },
+          "returns_base": {
+            "$ref": "#/components/schemas/ReturnsBlock"
+          },
+          "trades": {
+            "items": {
+              "$ref": "#/components/schemas/PositionTrade"
+            },
+            "type": "array",
+            "description": "Oldest first."
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/PositionSeriesPoint"
+            },
+            "type": "array",
+            "description": "Daily within the reporting period, including carried-in shares; ends at the closing date."
+          },
+          "price_history": {
+            "items": {
+              "$ref": "#/components/schemas/PricePoint"
+            },
+            "type": "array",
+            "description": "Daily closes from five years ago (or the opening date, if earlier) to today, for price context."
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_type",
+          "base_currency",
+          "closed",
+          "currency",
+          "current_price",
+          "full_ticker",
+          "id",
+          "notes",
+          "opened",
+          "original_cost_base",
+          "original_cost_local",
+          "portfolio_id",
+          "portfolio_name",
+          "position_type",
+          "price_date",
+          "price_history",
+          "returns_base",
+          "returns_local",
+          "security_id",
+          "security_name",
+          "series",
+          "shares",
+          "status",
+          "trades"
+        ],
+        "title": "PositionDetail"
+      },
+      "PositionRow": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "portfolio_id": {
+            "type": "integer"
+          },
+          "portfolio_name": {
+            "type": "string"
+          },
+          "security_id": {
+            "type": "integer"
+          },
+          "security_name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "full_ticker": {
+            "type": "string",
+            "examples": [
+              "ROKU:XNAS"
+            ]
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Instrument currency."
+          },
+          "base_currency": {
+            "type": "string"
+          },
+          "position_type": {
+            "type": "string",
+            "description": "long or short.",
+            "examples": [
+              "long"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "open or closed.",
+            "examples": [
+              "open"
+            ]
+          },
+          "reporting_start_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "opened": {
+            "type": "string",
+            "format": "date"
+          },
+          "closed": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "trades": {
+            "type": "integer",
+            "description": "Number of trades within the reporting period."
+          },
+          "current_price": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Latest broker mark for open positions, or the engine close when that is newer."
+          },
+          "avg_buy_price": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lifetime split-adjusted average buy price in instrument currency."
+          },
+          "avg_sell_price": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "value_base": {
+            "type": "string",
+            "description": "Current market value in base currency; zero when closed."
+          },
+          "invested_base": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Absolute opening value plus reporting-period purchases and their commissions, fees and taxes. Null when the opening valuation is unavailable."
+          },
+          "dividends_base": {
+            "type": "string",
+            "description": "Dividends net of withholding tax plus lending income."
+          },
+          "costs_base": {
+            "type": "string",
+            "description": "Commissions, fees and taxes attributed to the position (negative)."
+          },
+          "return_base": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Period gain: current value minus opening value plus subsequent trade cash flows, dividends and costs."
+          },
+          "roi_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "return_base / invested_base, as a fraction."
+          },
+          "annualized_days_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "annualized_months_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pct_aum": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Share of total account value across portfolios."
+          },
+          "pct_portfolio": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Share of the portfolio's open position value."
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "annualized_days_pct",
+          "annualized_months_pct",
+          "asset_type",
+          "avg_buy_price",
+          "avg_sell_price",
+          "base_currency",
+          "closed",
+          "costs_base",
+          "currency",
+          "current_price",
+          "dividends_base",
+          "full_ticker",
+          "id",
+          "invested_base",
+          "notes",
+          "opened",
+          "pct_aum",
+          "pct_portfolio",
+          "portfolio_id",
+          "portfolio_name",
+          "position_type",
+          "quantity",
+          "return_base",
+          "roi_pct",
+          "security_id",
+          "security_name",
+          "status",
+          "trades",
+          "value_base"
+        ],
+        "title": "PositionRow"
+      },
+      "PositionSeriesPoint": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "quantity": {
+            "type": "string",
+            "description": "Split-adjusted shares held at the close of the day."
+          },
+          "close": {
+            "type": "string",
+            "description": "Split-adjusted close in the instrument currency."
+          },
+          "market_value": {
+            "type": "string",
+            "description": "quantity times close, in the instrument currency."
+          }
+        },
+        "type": "object",
+        "required": [
+          "close",
+          "date",
+          "market_value",
+          "quantity"
+        ],
+        "title": "PositionSeriesPoint"
+      },
+      "PositionTrade": {
+        "properties": {
+          "trade_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "kind": {
+            "type": "string",
+            "description": "buy, sell or corporate_action.",
+            "examples": [
+              "buy"
+            ]
+          },
+          "quantity": {
+            "type": "string",
+            "description": "Signed quantity as booked, before later splits."
+          },
+          "price": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Execution price as booked."
+          },
+          "adjusted_price": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Execution price on today's split-adjusted basis."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "amount_local": {
+            "type": "string"
+          },
+          "amount_base": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "adjusted_price",
+          "amount_base",
+          "amount_local",
+          "currency",
+          "kind",
+          "price",
+          "quantity",
+          "trade_date"
+        ],
+        "title": "PositionTrade"
+      },
+      "PositionsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PositionRow"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "PositionsResponse"
+      },
+      "Preference": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Preference key, <kind>:<name>, e.g. filters:orders.",
+            "examples": [
+              "filters:orders"
+            ]
+          },
+          "value": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "description": "Filter values by filter name.",
+            "examples": [
+              {
+                "status": "open"
+              }
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "updated_at",
+          "value"
+        ],
+        "title": "Preference"
+      },
+      "PreferenceUpdate": {
+        "properties": {
+          "value": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "description": "Filter values by filter name; replaces the stored value."
+          }
+        },
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "title": "PreferenceUpdate"
+      },
+      "PreferencesResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Preference"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "PreferencesResponse"
+      },
+      "PricePoint": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "close": {
+            "type": "string",
+            "description": "Split-adjusted close in the instrument currency."
+          }
+        },
+        "type": "object",
+        "required": [
+          "close",
+          "date"
+        ],
+        "title": "PricePoint"
+      },
+      "PriceStatusResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PriceStatusRow"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "PriceStatusResponse"
+      },
+      "PriceStatusRow": {
+        "properties": {
+          "security_id": {
+            "type": "integer"
+          },
+          "security_name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "full_ticker": {
+            "type": "string",
+            "examples": [
+              "ROKU:XNAS"
+            ]
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Currency of the stored bars."
+          },
+          "source": {
+            "type": "string",
+            "description": "saxo, yahoo or none.",
+            "examples": [
+              "saxo"
+            ]
+          },
+          "yahoo_symbol": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "first_needed": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First ledger date of the security."
+          },
+          "last_needed": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last ledger date of the security."
+          },
+          "held": {
+            "type": "boolean",
+            "description": "In the latest broker position snapshot."
+          },
+          "first_price_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_price_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_close": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bars": {
+            "type": "integer"
+          },
+          "last_fetched_at": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_error": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "asset_type",
+          "bars",
+          "currency",
+          "first_needed",
+          "first_price_date",
+          "full_ticker",
+          "held",
+          "last_close",
+          "last_error",
+          "last_fetched_at",
+          "last_needed",
+          "last_price_date",
+          "security_id",
+          "security_name",
+          "source",
+          "yahoo_symbol"
+        ],
+        "title": "PriceStatusRow"
+      },
+      "ReadinessReport": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "ready only when every required dependency responds."
+          },
+          "checks": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DependencyStatus"
+            },
+            "type": "object"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checks",
+          "status"
+        ],
+        "title": "ReadinessReport"
+      },
+      "RebuildResponse": {
+        "properties": {
+          "portfolios": {
+            "items": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "status": {
+            "items": {
+              "$ref": "#/components/schemas/EngineStatusRow"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "finished_at",
+          "portfolios",
+          "started_at",
+          "status"
+        ],
+        "title": "RebuildResponse"
+      },
+      "ReportingCurrencySettings": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "description": "The reporting currency every portfolio is booked in.",
+            "examples": [
+              "EUR"
+            ]
+          },
+          "default_currency": {
+            "type": "string",
+            "description": "REPORTING_CURRENCY from the environment, used until one is chosen."
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/CurrencyOption"
+            },
+            "type": "array",
+            "description": "Currencies with ECB reference rates, EUR included."
+          },
+          "pending": {
+            "type": "boolean",
+            "description": "True while portfolios are still being re-booked or rebuilt in the currency."
+          },
+          "portfolios": {
+            "items": {
+              "$ref": "#/components/schemas/PortfolioCurrency"
+            },
+            "type": "array"
+          },
+          "task_id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Recalculation task queued by this request, if any."
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency",
+          "default_currency",
+          "options",
+          "pending",
+          "portfolios"
+        ],
+        "title": "ReportingCurrencySettings"
+      },
+      "ReportingCurrencyUpdate": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "examples": [
+              "EUR"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency"
+        ],
+        "title": "ReportingCurrencyUpdate"
+      },
+      "ReturnsBlock": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "examples": [
+              "USD"
+            ]
+          },
+          "opening_value": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Signed value carried into the reporting period; null if unavailable."
+          },
+          "total_cost": {
+            "type": "string",
+            "description": "Cash paid for purchases, negative."
+          },
+          "total_revenue": {
+            "type": "string",
+            "description": "Cash received from sales."
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current market value; zero when closed, null without a valuation."
+          },
+          "dividends": {
+            "type": "string",
+            "description": "Dividends net of withholding tax plus lending income."
+          },
+          "costs": {
+            "type": "string",
+            "description": "Commissions, fees and taxes, negative."
+          },
+          "return_amount": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "value - opening_value + total_revenue + total_cost + dividends + costs; null without valuation."
+          },
+          "roi_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "return_amount over absolute opening value plus purchases and buy-side costs, as a fraction."
+          },
+          "annualized_days_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "annualized_months_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "annualized_days_pct",
+          "annualized_months_pct",
+          "costs",
+          "currency",
+          "dividends",
+          "return_amount",
+          "roi_pct",
+          "total_cost",
+          "total_revenue",
+          "value"
+        ],
+        "title": "ReturnsBlock"
+      },
+      "SeriesSummary": {
+        "properties": {
+          "first_day": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_day": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "days": {
+            "type": "integer"
+          },
+          "period_return_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Return over the returned slice, as a fraction."
+          },
+          "annualized_return_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only after 30 days; calendar-day basis."
+          },
+          "max_drawdown_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nav": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unit_price": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cumulative_return_pct": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Since inception, as a fraction."
+          }
+        },
+        "type": "object",
+        "required": [
+          "annualized_return_pct",
+          "cumulative_return_pct",
+          "days",
+          "first_day",
+          "last_day",
+          "max_drawdown_pct",
+          "nav",
+          "period_return_pct",
+          "unit_price"
+        ],
+        "title": "SeriesSummary"
+      },
+      "ShareStats": {
+        "properties": {
+          "buys": {
+            "type": "integer",
+            "description": "Number of buy trades."
+          },
+          "shares_bought": {
+            "type": "string",
+            "description": "Shares bought, on today's split-adjusted basis."
+          },
+          "sells": {
+            "type": "integer"
+          },
+          "shares_sold": {
+            "type": "string"
+          },
+          "current": {
+            "type": "string",
+            "description": "Shares held now; zero when closed."
+          }
+        },
+        "type": "object",
+        "required": [
+          "buys",
+          "current",
+          "sells",
+          "shares_bought",
+          "shares_sold"
+        ],
+        "title": "ShareStats"
+      },
+      "StatusResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Current service state.",
+            "examples": [
+              "ok"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "StatusResponse"
+      },
+      "SyncQueuedResponse": {
+        "properties": {
+          "connection_id": {
+            "type": "integer",
+            "description": "Connection whose sync was queued.",
+            "examples": [
+              1
+            ]
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Celery task identifier for the queued sync."
+          }
+        },
+        "type": "object",
+        "required": [
+          "connection_id",
+          "task_id"
+        ],
+        "title": "SyncQueuedResponse"
+      },
+      "TransactionRow": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "trade_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "value_date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "description": "Ledger kind, e.g. trade, dividend, deposit.",
+            "examples": [
+              "trade"
+            ]
+          },
+          "portfolio_id": {
+            "type": "integer"
+          },
+          "portfolio_name": {
+            "type": "string"
+          },
+          "account_label": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Broker account id and currency.",
+            "examples": [
+              "1234567/2 (USD)"
+            ]
+          },
+          "security_name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "full_ticker": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ticker:MIC when known.",
+            "examples": [
+              "ROKU:XNAS"
+            ]
+          },
+          "security_currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantity": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "price": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "amount_local": {
+            "type": "string"
+          },
+          "account_currency": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "amount_account": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "base_currency": {
+            "type": "string"
+          },
+          "amount_base": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fx_rate_base": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "related_ref": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provisional": {
+            "type": "boolean",
+            "description": "Executed at the broker but not yet booked: taken from the order audit, replaced by the booked trade.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_currency",
+          "account_label",
+          "amount_account",
+          "amount_base",
+          "amount_local",
+          "base_currency",
+          "currency",
+          "description",
+          "full_ticker",
+          "fx_rate_base",
+          "id",
+          "kind",
+          "portfolio_id",
+          "portfolio_name",
+          "price",
+          "quantity",
+          "related_ref",
+          "security_currency",
+          "security_name",
+          "trade_date",
+          "value_date"
+        ],
+        "title": "TransactionRow"
+      },
+      "TransactionsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionRow"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "TransactionsResponse"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Process and required-dependency health probes."
+    },
+    {
+      "name": "Connections",
+      "description": "Broker connections, OAuth flows, and sync triggers."
+    },
+    {
+      "name": "Investments",
+      "description": "Ledger transactions, positions, and cash movements."
+    },
+    {
+      "name": "Data",
+      "description": "Reference data feeds: daily prices and FX rates."
+    },
+    {
+      "name": "Reports",
+      "description": "PnL attribution, unitized returns, reconciliation issues, rebuild."
+    },
+    {
+      "name": "Settings",
+      "description": "Application settings changed from Setup, such as the reporting currency."
+    }
+  ]
+}

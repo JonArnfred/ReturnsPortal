@@ -1,0 +1,64 @@
+[project]
+name = "returns-portal-backend"
+version = "0.1.0"
+description = "Backend of Returns Portal: broker connectors, ledger and the SQL PnL engine"
+license = "MIT"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "anyio==4.15.0",
+  "celery==5.6.3",
+  "cryptography>=45",
+  "flower==2.1.0",
+  "httpx==0.28.1",
+  "litestar==2.24.0",
+  "orjson==3.12.0",
+  "psycopg[binary,pool]==3.3.5",
+  "pydantic==2.13.5",
+  "python-dotenv==1.2.3",
+  "redis==8.1.0",
+  "uvicorn[standard]==0.52.4",
+  "yfinance>=1.7.0",
+]
+
+[dependency-groups]
+dev = [
+  "mypy==2.3.1",
+  "pytest==9.1.1",
+  "ruff==0.16.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = [".", "backend"]
+testpaths = ["backend/tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+src = ["backend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/scripts/*.py" = ["E402"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["backend/app", "backend/scripts", "backend/tests"]
+# Module names as the code imports them: app.*, scripts.* (from backend/) and the test modules by name.
+mypy_path = ["backend", "backend/tests"]
+explicit_package_bases = true
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["celery.*", "yfinance", "yfinance.*", "pandas", "pandas.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["app.tasks"]
+disallow_untyped_decorators = false

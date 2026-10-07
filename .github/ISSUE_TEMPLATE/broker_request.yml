@@ -1,0 +1,33 @@
+name: Broker request
+description: Ask for, or offer to build, a connector for another broker.
+labels: [broker]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        [CONTRIBUTING.md](../blob/master/CONTRIBUTING.md#adding-a-broker) describes what a connector
+        needs. Please do not attach real statements or exports; describe their format instead.
+  - type: input
+    id: broker
+    attributes:
+      label: Broker
+    validations:
+      required: true
+  - type: textarea
+    id: access
+    attributes:
+      label: Read-only access
+      description: |
+        How can the data be read without trading rights: an API (link to its documentation), a
+        scheduled report, a file export? Which of trades, cash movements, dividends, positions,
+        cash balances and daily account value does it provide?
+    validations:
+      required: true
+  - type: dropdown
+    id: help
+    attributes:
+      label: Can you help build or test it?
+      options:
+        - I would like to build it
+        - I can test it against my account
+        - Neither, just asking
