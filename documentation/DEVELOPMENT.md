@@ -31,6 +31,8 @@ cp backend/.env.example backend/.env
 uv creates the environment in `.venv`, which `dev.sh` uses. To keep it elsewhere (for example
 when the checkout lives in a synced folder such as Dropbox), export `UV_PROJECT_ENVIRONMENT` with
 the path before `uv sync`; `uv run` and `dev.sh` then use that location too.
+Alternatively, put the export in a local `.envrc` and run `direnv allow`. When direnv is installed,
+`dev.sh` loads the approved `.envrc` itself, even without a shell hook.
 
 Fill in the Postgres and Redis values in `backend/.env`, generate `SECRETS_ENCRYPTION_KEY` with
 `uv run python backend/scripts/generate_encryption_key.py`, and add broker credentials as described

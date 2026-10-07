@@ -4,6 +4,13 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Load the approved local environment even when the shell has no direnv hook.
+if [[ -f "$ROOT/.envrc" ]] && command -v direnv >/dev/null 2>&1; then
+  DIRENV_EXPORT="$(cd "$ROOT" && direnv export bash)"
+  eval "$DIRENV_EXPORT"
+  unset DIRENV_EXPORT
+fi
+
 # The Python environment uv manages: .venv in the repo, or wherever UV_PROJECT_ENVIRONMENT points
 # (useful when the checkout lives in a synced folder such as Dropbox).
 VENV_DIR="${VENV_DIR:-${UV_PROJECT_ENVIRONMENT:-$ROOT/.venv}}"
